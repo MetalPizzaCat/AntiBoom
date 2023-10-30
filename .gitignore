@@ -1,0 +1,6 @@
+#.net stuff
+bin
+obj
+
+# editors
+.vscode
