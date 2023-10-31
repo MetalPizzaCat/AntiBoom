@@ -14,17 +14,22 @@ namespace AntiBoom;
 class FieldDrawingOperation : ICustomDrawOperation
 {
 
-    private readonly GlyphRun _testMessageGlyphs;
-    private Minefield _field;
+    /// <summary>
+    /// Current location of the mouse relative to the whole canvas
+    /// </summary>
     public Point? CurrentMousePos { get; private set; }
-    private double _cellSize;
-    public static readonly string TestMessage = "Everything is trying to work";
-    private Rect _fieldRect;
-    public FieldDrawingOperation(Rect bounds, Bitmap blocksImage, Minefield field, double cellSize)
-    {
-        ushort[]? glyphs = TestMessage.Select(ch => Typeface.Default.GlyphTypeface.GetGlyph(ch)).ToArray();
-        _testMessageGlyphs = new GlyphRun(Typeface.Default.GlyphTypeface, 12, TestMessage.AsMemory(), glyphs);
+    public Rect Bounds { get; }
+    /// <summary>
+    /// Bitmap images used for displaying blocks
+    /// </summary>
+    public Bitmap? BlocksImage { get; }
 
+    private Minefield _field;
+    private double _cellSize;
+    private Rect _fieldRect;
+
+    public FieldDrawingOperation(Rect bounds, Bitmap? blocksImage, Minefield field, double cellSize)
+    {
         Bounds = bounds;
         BlocksImage = blocksImage;
         _field = field;
@@ -32,8 +37,6 @@ class FieldDrawingOperation : ICustomDrawOperation
         _fieldRect = new Rect(0, 0, cellSize * field.Width, cellSize * field.Height);
     }
 
-    public Rect Bounds { get; }
-    public Bitmap BlocksImage { get; }
     public void Dispose()
     {
         //throw new System.NotImplementedException();
@@ -60,27 +63,42 @@ class FieldDrawingOperation : ICustomDrawOperation
         throw new NotImplementedException("No border yet");
     }
 
+    private void DrawBlock(ImmediateDrawingContext context, int x, int y)
+    {
+        // fallback operation in case no suitable assets are present 
+        if (BlocksImage == null)
+        {
+            double offset = _cellSize * 0.1;
+            // base
+            context.DrawRectangle(Brushes.Aqua, null, new Rect(x * _cellSize, y * _cellSize, _cellSize, _cellSize));
+            // ~~cringe~~ inner detail
+            context.DrawRectangle(Brushes.AliceBlue, null, new Rect(
+                x * _cellSize + offset,
+                y * _cellSize + offset,
+                _cellSize - offset * 2,
+                _cellSize - offset * 2));
+            return;
+        }
+        double spriteOffset = _field[x, y] == Minefield.State.Hidden ? 0 : BlocksImage.PixelSize.Width * 2;
+        if (CurrentMousePos != null && x == CurrentMousePos.Value.X && y == CurrentMousePos.Value.Y)
+        {
+            spriteOffset += BlocksImage.PixelSize.Width;
+        }
+        context.DrawBitmap
+        (
+            BlocksImage,
+            new Rect(0, spriteOffset, BlocksImage.PixelSize.Width, BlocksImage.PixelSize.Width),
+            new Rect(x * _cellSize, y * _cellSize, _cellSize, _cellSize)
+        );
+    }
+
     public void Render(ImmediateDrawingContext context)
     {
-        if (_testMessageGlyphs.TryCreateImmutableGlyphRunReference() is IImmutableGlyphRunReference gl)
-        {
-            context.DrawGlyphRun(Brushes.Black, gl);
-        }
         for (int x = 0; x < _field.Width; x++)
         {
             for (int y = 0; y < _field.Height; y++)
             {
-                double spriteOffset = _field[x, y] == Minefield.State.Hidden ? 0 : BlocksImage.PixelSize.Width * 2;
-                if (CurrentMousePos != null && x == CurrentMousePos.Value.X && y == CurrentMousePos.Value.Y)
-                {
-                    spriteOffset += BlocksImage.PixelSize.Width;
-                }
-                context.DrawBitmap
-                (
-                    BlocksImage,
-                    new Rect(0, spriteOffset, BlocksImage.PixelSize.Width, BlocksImage.PixelSize.Width),
-                    new Rect(x * _cellSize, y * _cellSize, _cellSize, _cellSize)
-                );
+                DrawBlock(context, x, y);
             }
         }
     }

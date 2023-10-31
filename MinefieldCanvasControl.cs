@@ -14,40 +14,28 @@ using Avalonia.Input;
 
 namespace AntiBoom;
 
-public class Minefield
+public class GamePreference
 {
-    public enum State
+    public GamePreference(int mineCount, int width, int height)
     {
-        Hidden,
-        Revealed,
-        Flagged,
-        Question
-    }
-    private byte[] _bombs;
-
-    public Minefield(int width, int height)
-    {
+        MineCount = mineCount;
         Width = width;
         Height = height;
-
-        _bombs = new byte[width * height];
     }
 
-    public State this[int x, int y]
-    {
-        get => (State)_bombs[x + y * Width];
-        set => _bombs[x + y * Width] = (byte)value;
-    }
-
+    public int MineCount { get; }
     public int Width { get; }
     public int Height { get; }
 }
 public class MinefieldCanvasControl : Control
 {
-
     private Minefield _field;
     public Minefield Field => _field;
-    private Bitmap _blocksImage;
+    private Bitmap? _blocksImage;
+
+    public static readonly GamePreference EasyGamemode = new GamePreference(10, 9, 9);
+    public static readonly GamePreference MediumGamemode = new GamePreference(40, 16, 16);
+    public static readonly GamePreference HardGamemode = new GamePreference(99, 16, 30);
 
     public double _cellSize = 16;
     public double CellSize
@@ -72,9 +60,14 @@ public class MinefieldCanvasControl : Control
             Console.WriteLine("Failed to load game assets");
         }
 
-        _field = new Minefield(10, 10);
+        StartGame();
 
         PointerPressed += FieldClicked;
+    }
+
+    public void StartGame()
+    {
+        _field = new Minefield(EasyGamemode.Width, EasyGamemode.Height);
     }
 
     private void FieldClicked(object? sender, PointerPressedEventArgs e)
