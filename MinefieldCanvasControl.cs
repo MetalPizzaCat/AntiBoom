@@ -46,7 +46,20 @@ public class MinefieldCanvasControl : Control
 {
 
     private Minefield _field;
+    public Minefield Field => _field;
     private Bitmap _blocksImage;
+
+    public double _cellSize = 16;
+    public double CellSize
+    {
+        get => _cellSize;
+        set
+        {
+            _cellSize = value;
+            Width = value * Field.Width;
+            Height = value * Field.Height;
+        }
+    }
     public MinefieldCanvasControl()
     {
         ClipToBounds = true;
@@ -66,7 +79,12 @@ public class MinefieldCanvasControl : Control
 
     private void FieldClicked(object? sender, PointerPressedEventArgs e)
     {
-        Console.WriteLine("CLICK!");
+        Point clickPoint = e.GetPosition(this);
+        Point cell = new Point(
+            (int)(clickPoint.X) / CellSize,
+            (int)(clickPoint.Y) / CellSize);
+        _field[(int)cell.X, (int)cell.Y] = Minefield.State.Revealed;
+        Console.WriteLine($"CLICK at ({clickPoint.X}, {clickPoint.Y})");
     }
 
     public override void Render(DrawingContext context)
@@ -74,7 +92,8 @@ public class MinefieldCanvasControl : Control
         context.Custom(new FieldDrawingOperation(
             new Rect(0, 0, Bounds.Width, Bounds.Height),
             _blocksImage,
-            _field));
+            _field,
+            _cellSize));
         Dispatcher.UIThread.InvokeAsync(InvalidateVisual, DispatcherPriority.Background);
     }
 }

@@ -15,12 +15,12 @@ class FieldDrawingOperation : ICustomDrawOperation
 {
 
     private readonly GlyphRun _testMessageGlyphs;
-    public static readonly int CellScale = 3;
     private Minefield _field;
-    public Point CurrentMousePos { get; private set; }
+    public Point? CurrentMousePos { get; private set; }
+    private double _cellSize;
     public static readonly string TestMessage = "Everything is trying to work";
     private Rect _fieldRect;
-    public FieldDrawingOperation(Rect bounds, Bitmap blocksImage, Minefield field)
+    public FieldDrawingOperation(Rect bounds, Bitmap blocksImage, Minefield field, double cellSize)
     {
         ushort[]? glyphs = TestMessage.Select(ch => Typeface.Default.GlyphTypeface.GetGlyph(ch)).ToArray();
         _testMessageGlyphs = new GlyphRun(Typeface.Default.GlyphTypeface, 12, TestMessage.AsMemory(), glyphs);
@@ -28,7 +28,8 @@ class FieldDrawingOperation : ICustomDrawOperation
         Bounds = bounds;
         BlocksImage = blocksImage;
         _field = field;
-        _fieldRect = new Rect(0, 0, CellScale * blocksImage.PixelSize.Width * field.Width, CellScale * blocksImage.PixelSize.Width * field.Height);
+        _cellSize = cellSize;
+        _fieldRect = new Rect(0, 0, cellSize * field.Width, cellSize * field.Height);
     }
 
     public Rect Bounds { get; }
@@ -43,14 +44,14 @@ class FieldDrawingOperation : ICustomDrawOperation
 
     public bool HitTest(Point p)
     {
-
         if (!Bounds.Contains(p) || !_fieldRect.Contains(p))
         {
+            CurrentMousePos = null;
             return false;
         }
         CurrentMousePos = new Point(
-            (int)(p.X) / (CellScale * BlocksImage.PixelSize.Width),
-            (int)(p.Y) / (CellScale * BlocksImage.PixelSize.Width));
+            (int)(p.X) / _cellSize,
+            (int)(p.Y) / _cellSize);
         return true;
     }
 
@@ -70,19 +71,16 @@ class FieldDrawingOperation : ICustomDrawOperation
             for (int y = 0; y < _field.Height; y++)
             {
                 double spriteOffset = _field[x, y] == Minefield.State.Hidden ? 0 : BlocksImage.PixelSize.Width * 2;
-                if (x == CurrentMousePos.X && y == CurrentMousePos.Y)
+                if (CurrentMousePos != null && x == CurrentMousePos.Value.X && y == CurrentMousePos.Value.Y)
                 {
                     spriteOffset += BlocksImage.PixelSize.Width;
                 }
-                context.DrawBitmap(BlocksImage,
-                new Rect(0, spriteOffset, BlocksImage.PixelSize.Width, BlocksImage.PixelSize.Width),
-                new Rect
+                context.DrawBitmap
                 (
-                    x * CellScale * BlocksImage.PixelSize.Width,
-                    y * CellScale * BlocksImage.PixelSize.Width,
-                    CellScale * BlocksImage.PixelSize.Width,
-                    CellScale * BlocksImage.PixelSize.Width
-                ));
+                    BlocksImage,
+                    new Rect(0, spriteOffset, BlocksImage.PixelSize.Width, BlocksImage.PixelSize.Width),
+                    new Rect(x * _cellSize, y * _cellSize, _cellSize, _cellSize)
+                );
             }
         }
     }
