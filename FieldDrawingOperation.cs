@@ -11,7 +11,7 @@ using Avalonia.Media.Imaging;
 
 namespace AntiBoom;
 
-class FieldDrawingOperation : ICustomDrawOperation
+public sealed class FieldDrawingOperation : ICustomDrawOperation
 {
 
     /// <summary>
@@ -27,14 +27,16 @@ class FieldDrawingOperation : ICustomDrawOperation
     private Minefield _field;
     private double _cellSize;
     private Rect _fieldRect;
+    private bool _cheating;
 
-    public FieldDrawingOperation(Rect bounds, Bitmap? blocksImage, Minefield field, double cellSize)
+    public FieldDrawingOperation(Rect bounds, Bitmap? blocksImage, Minefield field, double cellSize, bool cheating)
     {
         Bounds = bounds;
         BlocksImage = blocksImage;
         _field = field;
         _cellSize = cellSize;
         _fieldRect = new Rect(0, 0, cellSize * field.Width, cellSize * field.Height);
+        _cheating = cheating;
     }
 
     public void Dispose()
@@ -63,12 +65,14 @@ class FieldDrawingOperation : ICustomDrawOperation
         throw new NotImplementedException("No border yet");
     }
 
+
     private void DrawBlock(ImmediateDrawingContext context, int x, int y)
     {
+        double offset = 0;
         // fallback operation in case no suitable assets are present 
         if (BlocksImage == null)
         {
-            double offset = _cellSize * 0.1;
+            offset = _cellSize * 0.1;
             // base
             context.DrawRectangle(Brushes.Aqua, null, new Rect(x * _cellSize, y * _cellSize, _cellSize, _cellSize));
             // ~~cringe~~ inner detail
@@ -79,15 +83,27 @@ class FieldDrawingOperation : ICustomDrawOperation
                 _cellSize - offset * 2));
             return;
         }
-        double spriteOffset = _field[x, y] == Minefield.State.Hidden ? 0 : BlocksImage.PixelSize.Width * 2;
-        if (CurrentMousePos != null && x == CurrentMousePos.Value.X && y == CurrentMousePos.Value.Y)
+
+        switch (_cheating ?  CellState.Revealed : _field[x, y].State)
         {
-            spriteOffset += BlocksImage.PixelSize.Width;
+            case CellState.Hidden:
+                // do nothing, hidden tile is at id 0
+                break;
+            case CellState.Revealed:
+                offset = (_field[x, y].IsBomb ? 3 : 15) * BlocksImage.PixelSize.Width;
+                break;
+            case CellState.Flagged:
+                offset = BlocksImage.PixelSize.Width;
+                break;
+            case CellState.Question:
+                offset = BlocksImage.PixelSize.Width * 2;
+                break;
         }
+
         context.DrawBitmap
         (
             BlocksImage,
-            new Rect(0, spriteOffset, BlocksImage.PixelSize.Width, BlocksImage.PixelSize.Width),
+            new Rect(0, offset, BlocksImage.PixelSize.Width, BlocksImage.PixelSize.Width),
             new Rect(x * _cellSize, y * _cellSize, _cellSize, _cellSize)
         );
     }

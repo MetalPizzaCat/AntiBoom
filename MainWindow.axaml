@@ -21,7 +21,6 @@
             </MenuItem>
             <MenuItem Header="_About"></MenuItem>
         </Menu>
-        <TextBlock DockPanel.Dock="Top">We are running!</TextBlock>
         <antiboom:MinefieldCanvasControl x:Name="MinefieldCanvas" DockPanel.Dock="Top" />
     </DockPanel>
 

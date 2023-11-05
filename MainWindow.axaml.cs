@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 
 namespace AntiBoom;
 
@@ -36,5 +37,17 @@ public partial class MainWindow : Window
         DataContext = this;
 
         SetFieldCellSize(24);
+
+        KeyDown += KeyPressed;
+    }
+
+    private void KeyPressed(object? sender, KeyEventArgs args)
+    {
+        if (args.Key == Key.LeftShift)
+        {
+            // made this a toggle because avalonia refuses to catch key release
+            // and i can't be bothered to debug it
+            MinefieldCanvas.Cheating = !MinefieldCanvas.Cheating;
+        }
     }
 }

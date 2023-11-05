@@ -38,6 +38,12 @@ public class MinefieldCanvasControl : Control
     public static readonly GamePreference HardGamemode = new GamePreference(99, 16, 30);
 
     public double _cellSize = 16;
+
+    private int _visitedCellsCount = 0;
+
+    public bool Cheating { get; set; } = false;
+    private bool _gameOver = false;
+
     public double CellSize
     {
         get => _cellSize;
@@ -63,20 +69,96 @@ public class MinefieldCanvasControl : Control
         StartGame();
 
         PointerPressed += FieldClicked;
+
     }
 
+
+    /// <summary>
+    /// Stars a new game using data from preferences
+    /// </summary>
     public void StartGame()
     {
+#if !DEBUG
+        Random rand = new Random((int)DateTime.Now.Ticks);
+#else
+        Random rand = new Random();
+#endif
+        _visitedCellsCount = 0;
+        _gameOver = false;
         _field = new Minefield(EasyGamemode.Width, EasyGamemode.Height);
+        int bombCount = EasyGamemode.MineCount;
+        int x = 0;
+        int y = 0;
+        do
+        {
+            do
+            {
+                x = rand.Next(_field.Width);
+                y = rand.Next(_field.Height);
+            } while (_field[x, y].IsBomb);
+            _field[x, y].IsBomb = true;
+        } while ((--bombCount) > 0);
+    }
+
+
+    /// <summary>
+    /// Moves the the bomb into a new location<para/>
+    /// Intended to be used to prevent loss on first click if player accidentally clicks a bomb on their first click
+    /// </summary>
+    /// <param name="x">x coord of the bomb</param>
+    /// <param name="y">y coord of the bom</param>
+    /// <returns>True if managed to move the bomb, false if not. To allow for first click loss if player messed with settings</returns>
+    private bool FixFirstClickBomb(int x, int y)
+    {
+        // move bomb away from player to prevent first click loss
+        for (int newX = 0; newX < _field.Width; newX++)
+        {
+            for (int newY = 0; newY < _field.Width; newY++)
+            {
+                if (!_field[newX, newY].IsBomb)
+                {
+                    _field[newX, newY].IsBomb = true;
+                    _field[x, y].IsBomb = false;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void LooseGame()
+    {
+        _gameOver = true;
+        _field.RevealAllBombs();
     }
 
     private void FieldClicked(object? sender, PointerPressedEventArgs e)
     {
+        if (_gameOver)
+        {
+            return;
+        }
         Point clickPoint = e.GetPosition(this);
-        Point cell = new Point(
-            (int)(clickPoint.X) / CellSize,
-            (int)(clickPoint.Y) / CellSize);
-        _field[(int)cell.X, (int)cell.Y] = Minefield.State.Revealed;
+        int x = (int)clickPoint.X / (int)CellSize;
+        int y = (int)clickPoint.Y / (int)CellSize;
+
+        if (_field[x, y].IsBomb)
+        {
+            if (_visitedCellsCount == 0)
+            {
+                if (!FixFirstClickBomb(x, y))
+                {
+                    LooseGame();
+                }
+            }
+            else
+            {
+                LooseGame();
+            }
+        }
+        // placeholder
+        _field[x, y].State = CellState.Revealed;
+        _visitedCellsCount++;
         Console.WriteLine($"CLICK at ({clickPoint.X}, {clickPoint.Y})");
     }
 
@@ -86,7 +168,13 @@ public class MinefieldCanvasControl : Control
             new Rect(0, 0, Bounds.Width, Bounds.Height),
             _blocksImage,
             _field,
-            _cellSize));
+            _cellSize,
+#if DEBUG
+            Cheating
+#else
+            false
+#endif
+            ));
         Dispatcher.UIThread.InvokeAsync(InvalidateVisual, DispatcherPriority.Background);
     }
 }
