@@ -6,8 +6,8 @@
     x:Class="AntiBoom.MainWindow"
     xmlns:antiboom="using:AntiBoom"
     Title="AntiBoom"
-    SizeToContent = "WidthAndHeight"
-    CanResize = "False">
+    SizeToContent="WidthAndHeight"
+    CanResize="False">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_Game">
@@ -19,7 +19,7 @@
                 <RadioButton GroupName="ScaleGroup" IsChecked="{Binding ScaleOption200Selected}">Scale:
                     200%</RadioButton>
             </MenuItem>
-            <MenuItem Header="_About"></MenuItem>
+            <MenuItem Header="_About" Command="{Binding ShowAboutDialog}"></MenuItem>
         </Menu>
         <antiboom:MinefieldCanvasControl x:Name="MinefieldCanvas" DockPanel.Dock="Top" />
     </DockPanel>

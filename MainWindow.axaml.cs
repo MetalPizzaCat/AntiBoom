@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 
@@ -49,5 +50,11 @@ public partial class MainWindow : Window
             // and i can't be bothered to debug it
             MinefieldCanvas.Cheating = !MinefieldCanvas.Cheating;
         }
+    }
+
+    public async Task ShowAboutDialog()
+    {
+        AboutWindow about = new AboutWindow();
+        await about.ShowDialog(this);
     }
 }
