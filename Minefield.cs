@@ -42,12 +42,25 @@ public class Minefield
         _cells = Enumerable.Range(0, width * height).Select(i => new FieldCell()).ToArray();
     }
 
-    public FieldCell this[int x, int y]
+    /// <summary>
+    /// Returns cell at specified coordinates or null if coordinates are out of bounds
+    /// </summary>
+    public FieldCell? this[int x, int y]
     {
-        get => _cells[x + y * Width];
-        set => _cells[x + y * Width] = value;
+        get
+        {
+            int id = x + y * Width;
+            if (x < 0 || x >= Width || y < 0 || y >= Height)
+            {
+                return null;
+            }
+            return _cells[id];
+        }
     }
 
+    /// <summary>
+    /// Sets all bombs to be revealed
+    /// </summary>
     public void RevealAllBombs()
     {
         foreach (FieldCell cell in _cells.Where(p => p.IsBomb))
@@ -56,6 +69,13 @@ public class Minefield
         }
     }
 
+    /// <summary>
+    /// Current width of the playing field
+    /// </summary>
     public int Width { get; }
+
+    /// <summary>
+    /// Current height of the playing field
+    /// </summary>
     public int Height { get; }
 }

@@ -31,13 +31,13 @@ public class MinefieldCanvasControl : Control
 {
     private Minefield _field;
     public Minefield Field => _field;
-    private Bitmap? _blocksImage;
+    private readonly Bitmap? _blocksImage;
 
     public static readonly GamePreference EasyGamemode = new GamePreference(10, 9, 9);
     public static readonly GamePreference MediumGamemode = new GamePreference(40, 16, 16);
     public static readonly GamePreference HardGamemode = new GamePreference(99, 16, 30);
 
-    public double _cellSize = 16;
+    private double _cellSize = 16;
 
     private int _visitedCellsCount = 0;
 
@@ -132,6 +132,50 @@ public class MinefieldCanvasControl : Control
         _field.RevealAllBombs();
     }
 
+    private void StepBlock(int startX, int startY)
+    {
+        FieldCell? cell = _field[startX, startY];
+        if (cell == null || cell.IsBomb || cell.State == CellState.Revealed)
+        {
+            return;
+        }
+        RevealCell(startX, startY);
+        if (cell.BombCount == 0)
+        {
+            StepBlock(startX - 1, startY);
+            StepBlock(startX + 1, startY);
+            StepBlock(startX, startY - 1);
+            StepBlock(startX, startY + 1);
+        }
+    }
+
+    private void RevealCell(int x, int y)
+    {
+        FieldCell? cell = _field[x, y];
+        if (cell == null)
+        {
+            return;
+        }
+        cell.State = CellState.Revealed;
+        // no point in counting for bombs
+        if (cell.IsBomb)
+        {
+            return;
+        }
+        cell.BombCount = 0;
+        for (int cX = x - 1; cX <= x + 1; cX++)
+        {
+            for (int cY = y - 1; cY <= y + 1; cY++)
+            {
+                FieldCell? temp = _field[cX, cY];
+                if (temp != null && temp.IsBomb)
+                {
+                    cell.BombCount++;
+                }
+            }
+        }
+    }
+
     private void FieldClicked(object? sender, PointerPressedEventArgs e)
     {
         if (_gameOver)
@@ -157,7 +201,7 @@ public class MinefieldCanvasControl : Control
             }
         }
         // placeholder
-        _field[x, y].State = CellState.Revealed;
+        StepBlock(x, y);
         _visitedCellsCount++;
         Console.WriteLine($"CLICK at ({clickPoint.X}, {clickPoint.Y})");
     }

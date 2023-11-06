@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Media.Imaging;
+using System.Diagnostics;
 
 namespace AntiBoom;
 
@@ -68,6 +69,12 @@ public sealed class FieldDrawingOperation : ICustomDrawOperation
 
     private void DrawBlock(ImmediateDrawingContext context, int x, int y)
     {
+        FieldCell? cell = _field[x, y];
+        if (cell == null)
+        {
+            Debug.WriteLine("Attempted to draw invalid cell, this should not be possible however");
+            return;
+        }
         double offset = 0;
         // fallback operation in case no suitable assets are present 
         if (BlocksImage == null)
@@ -84,13 +91,20 @@ public sealed class FieldDrawingOperation : ICustomDrawOperation
             return;
         }
 
-        switch (_cheating ?  CellState.Revealed : _field[x, y].State)
+        switch (_cheating ? CellState.Revealed : cell.State)
         {
             case CellState.Hidden:
                 // do nothing, hidden tile is at id 0
                 break;
             case CellState.Revealed:
-                offset = (_field[x, y].IsBomb ? 3 : 15) * BlocksImage.PixelSize.Width;
+                if (cell.IsBomb)
+                {
+                    offset = BlocksImage.PixelSize.Width * 3;
+                }
+                else
+                {
+                    offset = (15 - (cell.BombCount ?? 0)) *  BlocksImage.PixelSize.Width;
+                }
                 break;
             case CellState.Flagged:
                 offset = BlocksImage.PixelSize.Width;
